@@ -2,6 +2,7 @@
 setwd(dirname(rstudioapi::getActiveDocumentContext()$path))
 library(tidyverse)
 
+# Data Import and Cleaning
 review_tbl <- read_delim("../data/satisfaction_reviews.csv", delim = ".", col_names = F)
 dataset_tbl <- read_delim("../data/dataset.csv", delim = "+")
 
