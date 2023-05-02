@@ -3,6 +3,11 @@ setwd(dirname(rstudioapi::getActiveDocumentContext()$path))
 library(tidyverse)
 library(haven)
 library(caret)
+library(rvest)
+library(tm)
+library(qdap)
+library(textstem)
+library(RWeka)
 
 # Data Import and Cleaning 
 ion_tbl <- read_csv("../data/ion_final_tbl.csv")
@@ -25,3 +30,34 @@ ion_tbl_recode <- ion_tbl %>%
          Over18 = recode(Over18, "Y" = 0),
          OverTime = recode(OverTime, "Yes" = 0, "No" = 1)
          )
+
+ion_reviews <- ion_tbl %>%
+  select(satisfaction_txt, dissatisfaction_txt)
+
+ion_corpus_original_satis <- VCorpus(VectorSource(ion_reviews$satisfaction_txt))
+
+ion_corpus_satis <- ion_corpus_original_satis %>%
+  #tm_map(content_transformer(str_replace_all), pattern = "’", replacement = "'") %>%
+  #tm_map(content_transformer(str_replace_all), pattern = "-|/", replacement = " ") %>%
+  #tm_map(content_transformer(str_remove), pattern = "‘|“|”") %>%
+  tm_map(content_transformer(replace_abbreviation)) %>%
+  tm_map(content_transformer(replace_contraction)) %>%
+  tm_map(content_transformer(str_to_lower)) %>%
+  tm_map(removePunctuation) %>%
+  tm_map(removeNumbers) %>%
+  tm_map(removeWords, stopwords("en")) %>%
+  tm_map(stripWhitespace) %>%
+  tm_map(content_transformer(lemmatize_strings))
+
+compare_them <- function(corpus_1, corpus_2){
+  sample_num <- sample(1:length(corpus_1), 1)
+  compare <- list(corpus_1[[sample_num]]$content, corpus_2[[sample_num]]$content)
+  compare
+}
+
+compare_them(ion_corpus_original_satis, ion_corpus_satis)
+
+
+
+
+
