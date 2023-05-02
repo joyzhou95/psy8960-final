@@ -3,7 +3,6 @@ setwd(dirname(rstudioapi::getActiveDocumentContext()$path))
 library(tidyverse)
 library(haven)
 library(caret)
-library(rvest)
 library(tm)
 library(qdap)
 library(textstem)
@@ -31,15 +30,14 @@ ion_tbl_recode <- ion_tbl %>%
          OverTime = recode(OverTime, "Yes" = 0, "No" = 1)
          )
 
+## NPL cleaning satis
 ion_reviews <- ion_tbl %>%
+  drop_na(satisfaction_txt,dissatisfaction_txt) %>%
   select(satisfaction_txt, dissatisfaction_txt)
 
 ion_corpus_original_satis <- VCorpus(VectorSource(ion_reviews$satisfaction_txt))
 
 ion_corpus_satis <- ion_corpus_original_satis %>%
-  #tm_map(content_transformer(str_replace_all), pattern = "’", replacement = "'") %>%
-  #tm_map(content_transformer(str_replace_all), pattern = "-|/", replacement = " ") %>%
-  #tm_map(content_transformer(str_remove), pattern = "‘|“|”") %>%
   tm_map(content_transformer(replace_abbreviation)) %>%
   tm_map(content_transformer(replace_contraction)) %>%
   tm_map(content_transformer(str_to_lower)) %>%
@@ -56,6 +54,17 @@ compare_them <- function(corpus_1, corpus_2){
 }
 
 compare_them(ion_corpus_original_satis, ion_corpus_satis)
+
+bi_token <- function(x){
+  NGramTokenizer(x, Weka_control(min = 1, max = 2))
+}
+
+ion_dtm_satis <- DocumentTermMatrix(
+  ion_corpus_satis, 
+  control = list(tokenizer = bi_token)
+)
+
+ion_slim_dtm_satis <- removeSparseTerms(ion_dtm_satis, .997)
 
 
 
