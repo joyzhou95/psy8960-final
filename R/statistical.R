@@ -4,7 +4,8 @@ library(tidyverse)
 library(rstatix)
 
 # Data Import and Cleaning 
-ion_tbl <- read_csv("../data/ion_final_tbl.csv")
+ion_tbl <- read_csv("../data/ion_final_tbl.csv") 
+
 
 # Analysis 
 ## Test of H1
@@ -15,6 +16,7 @@ pay_perf_cor <- ion_tbl %>%
 pay_depart_anova <- ion_tbl %>%
   anova_test(
     formula = MonthlyIncome ~ Department,
+    detailed =T
   )
 
 # Visualization 
@@ -56,3 +58,54 @@ paste0(
   ifelse(pay_perf_cor$p > 0.05, "not", ""),
   " statistically significant."
 )
+
+## Publication results of H2
+h2_anova_tbl <- tibble(
+  "Source of Variation" = c("Department", "Error", "Total"),
+  "Sum of Squares" = c(pay_depart_anova$SSn, pay_depart_anova$SSd, 
+                       sum(pay_depart_anova$SSn + pay_depart_anova$SSd)),
+  "Degree of Freedom" = c(pay_depart_anova$DFn, pay_depart_anova$DFd,
+                          sum(pay_depart_anova$DFn + pay_depart_anova$DFd)),
+  "Mean Squares" = c(pay_depart_anova$SSn/pay_depart_anova$DFn, 
+                     pay_depart_anova$SSd/pay_depart_anova$DFd, 
+                     NA),
+  "F value" = c(format(
+    round(pay_depart_anova$F, 2), 
+    nsmall = 2), 
+    NA, 
+    NA),
+  "p value" = c(str_remove(
+    format(
+      round(pay_perf_cor$p, 2), 
+      nsmall = 2),
+    "^0"), 
+    NA, 
+    NA)
+)
+
+write_csv(h2_anova_tbl, "../out/H2.csv")
+
+paste0(
+  "The ANOVA test indicated that there was ",
+  ifelse(pay_depart_anova$p > 0.05, "not ", ""),
+  "a statistically significant difference in monthly income among different departments (",
+  "F(", 
+  pay_depart_anova$DFn, 
+  ", ",
+  pay_depart_anova$DFd,
+  ") = ",
+  format(round(pay_depart_anova$F, 2), nsmall = 2),
+  ", p = ",
+  str_remove(
+    format(
+      round(pay_depart_anova$p, 2), 
+      nsmall = 2),
+    "^0"),
+  ")."
+)
+
+
+
+
+
+
