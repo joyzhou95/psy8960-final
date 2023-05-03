@@ -1,0 +1,5 @@
+Variables,Coefficients,t-value,p-value
+Intercept, 7.02,12.48,.00
+Relationship Satisfaction,-0.06,-0.31,.76
+Gender,-0.78,-0.88,.38
+Relationship Satisfaction X Gender, 0.43, 1.42,.16

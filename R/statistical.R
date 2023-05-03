@@ -11,9 +11,12 @@ ion_tbl <- ion_tbl1 %>%
 
 
 # Analysis 
+
 ## Test of H1
 pay_perf_cor <- ion_tbl %>%
   cor_test(vars = c("MonthlyIncome", "PerformanceRating"))
+pay_perf_cor
+
 
 ## Test of H2
 pay_depart_anova <- ion_tbl %>%
@@ -21,12 +24,17 @@ pay_depart_anova <- ion_tbl %>%
     formula = MonthlyIncome ~ Department,
     detailed =T
   )
+pay_depart_anova
+
 
 ## Test of H3
-h3_reg <- lm(YearsAtCompany ~ RelationshipSatisfaction + RelationshipSatisfaction * Gender,
+h3_reg <- lm(YearsAtCompany ~ RelationshipSatisfaction + Gender + RelationshipSatisfaction * Gender,
              data = ion_tbl) 
-summary(h3_reg)
+h3_reg_out <- summary(h3_reg)
 
+tenure_pred <- predict(h3_reg)
+ion_tbl_pred <- ion_tbl %>%
+  add_column(tenure_pred = tenure_pred)
 
 
 
@@ -55,10 +63,6 @@ summary(h3_reg)
 
 
 ## Visualization of H3
-tenure_pred <- predict.lm(h3_reg)
-ion_tbl_pred <- ion_tbl %>%
-  add_column(tenure_pred = tenure_pred)
-
 (ggplot(ion_tbl_pred, aes(x = YearsAtCompany, y = tenure_pred)) + 
   geom_point(position = "jitter") + 
   geom_smooth(method = "lm", se = F) + 
@@ -89,9 +93,11 @@ paste0(
     "^0"),
   ". This test was ",
   ifelse(pay_perf_cor$p > 0.05, "not", ""),
-  " statistically significant."
+  " statistically significant.",
+  "Therefore, hypothesis 1 was ",
+  ifelse(pay_perf_cor$p > 0.05, "not ", ""),
+  "supported."
 )
-
 
 
 
@@ -141,9 +147,95 @@ paste0(
       round(pay_depart_anova$p, 2), 
       nsmall = 2),
     "^0"),
-  ")."
+  ").",
+  "Therefore, hypothesis 2 was ",
+  ifelse(pay_depart_anova$p > 0.05, "not ", ""),
+  "supported."
 )
 
+
+
+## Publication results of H3
+
+h3_reg_table <- tibble(
+  Variables = c("Intercept", 
+                "Relationship Satisfaction", 
+                "Gender",
+                "Relationship Satisfaction X Gender"),
+  Coefficients = format(
+    round(
+      h3_reg_out$coefficients[,1], 
+      2),
+    nsmall = 2),
+  "t-value" = format(
+    round(
+      h3_reg_out$coefficients[,3], 
+      2), 
+    nsmall = 2),
+  "p-value" = str_remove(
+    format(
+      round(h3_reg_out$coefficients[,4], 2), 
+      nsmall = 2),
+    "^0")
+)
+
+write_csv(h3_reg_table, "../out/H3.csv")
+
+
+paste0(
+  "The regression analyses results indicated that relationship satisfaction did ",
+  ifelse(h3_reg_out$coefficients[,4][2] > 0.05, "not ", ""),
+  "significantly predict tenure (b = ",
+  format(
+    round(
+      h3_reg_out$coefficients[,1][2], 2),
+    nsmall = 2),
+  ", p = ",
+  str_remove(
+    format(
+      round(h3_reg_out$coefficients[,4][2], 2), 
+      nsmall = 2),
+    "^0"),
+  "), ",
+  "and gender did ",
+  ifelse(h3_reg_out$coefficients[,4][3] > 0.05, "not ", ""),
+  "significantly predict tenure (b = ",
+  format(
+    round(
+      h3_reg_out$coefficients[,1][3], 2),
+    nsmall = 2),
+  ", p = ",
+  str_remove(
+    format(
+      round(h3_reg_out$coefficients[,4][3], 2), 
+      nsmall = 2),
+    "^0"),
+  "). ",
+  "Lastly, the interaction between relationship satisfaction and gender did ",
+  ifelse(h3_reg_out$coefficients[,4][4] > 0.05, "not ", ""),
+  "significantly predict tenure (b = ",
+  format(
+    round(
+      h3_reg_out$coefficients[,1][4], 
+      2),
+    nsmall = 2),
+  ", p = ",
+  str_remove(
+    format(
+      round(h3_reg_out$coefficients[,4][4], 2), 
+      nsmall = 2),
+    "^0"),
+  "). ",
+  "Overall speaking, hypothesis 3 was ",
+  if(h3_reg_out$coefficients[,4][2] > 0.05 & h3_reg_out$coefficients[,4][4] > 0.05) {
+    "not "
+    } else if (h3_reg_out$coefficients[,4][2] < 0.05 & h3_reg_out$coefficients[,4][4] < 0.05) {
+      ""
+      } else if (h3_reg_out$coefficients[,4][2] < 0.05 | h3_reg_out$coefficients[,4][4] < 0.05) {
+        "partially "
+      },
+  "supported."
+)
 
 
 
