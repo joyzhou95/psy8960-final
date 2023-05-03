@@ -22,4 +22,21 @@ pay_perf_cor <- ion_tbl %>%
 
 # Publication
 ## Publication Results for H1 
-
+paste0(
+  "The pearson correlation between monthly income and performance ratings was r = ", 
+  str_replace(
+    format(round(pay_perf_cor$cor, 2), 
+           nsmall = 2), 
+    "^(-?)0", 
+    str_match(pay_perf_cor$cor, 
+              '^(-?)0+')[,2]),
+  ", p = ",
+  str_remove(
+    format(
+      round(pay_perf_cor$p, 2), 
+      nsmall = 2),
+    "^0"),
+  ". This test was ",
+  ifelse(pay_perf_cor$p > 0.05, "not", ""),
+  " statistically significant."
+)
