@@ -137,3 +137,108 @@ variance <- ion_tbl_recode %>%
 ion_tbl_final <- ion_tbl_recode %>%
   select(-EmployeeCount, -Over18, -StandardHours)
 
+######### Predictive Modeling 
+
+train_cases <- sample(1:nrow(ion_tbl_final), .75*nrow(ion_tbl_final))
+
+ion_train_tbl <- ion_tbl_final[train_cases, ]
+ion_test_tbl <- ion_tbl_final[-train_cases, ]
+
+training_folds <- createFolds(ion_train_tbl$Attrition,
+                              k=10)
+
+local_cluster <- makeCluster(7)
+registerDoParallel(local_cluster)
+
+tic()
+model1n <- train(
+  Attrition ~ .,
+  ion_train_tbl, 
+  method="lm",
+  na.action=na.pass,
+  preProcess=c("center", "scale", "nzv", "medianImpute"),
+  trControl=trainControl(method="cv", number=10, indexOut=training_folds, verboseIter=T) 
+)
+toc_model1n <- toc()
+model1n
+
+hocv_cor_1n <- cor(
+  predict(model1n, ion_test_tbl, na.action=na.pass),
+  ion_test_tbl$Attrition
+)^2
+
+tic()
+model2n <- train(
+  Attrition ~ .,
+  ion_train_tbl, 
+  method="glmnet",
+  tuneLength=3,
+  na.action=na.pass,
+  preProcess=c("center", "scale", "nzv", "medianImpute"),
+  trControl=trainControl(method="cv", number=10, indexOut=training_folds, verboseIter=T) 
+)
+toc_model2n <- toc()
+model2n
+
+hocv_cor_2n <- cor(
+  predict(model2n, ion_test_tbl, na.action=na.pass),
+  ion_test_tbl$Attrition
+) ^ 2
+
+tic()
+model3n <- train(
+  Attrition ~ .,
+  ion_train_tbl, 
+  method="ranger",
+  tuneLength=3,
+  na.action=na.pass,
+  preProcess=c("center", "scale", "nzv", "medianImpute"),
+  trControl=trainControl(method="cv", number=10, indexOut=training_folds, verboseIter=T) 
+)
+toc_model3n <- toc()
+model3n
+
+hocv_cor_3n <- cor(
+  predict(model3n, ion_test_tbl, na.action=na.pass),
+  ion_test_tbl$Attrition
+) ^ 2
+
+tic()
+model4n <- train(
+  Attrition ~ .,
+  ion_train_tbl, 
+  method="xgbTree",
+  tuneLength=1,
+  na.action=na.pass,
+  preProcess=c("center", "scale", "nzv", "medianImpute"),
+  trControl=trainControl(method="cv", number=10, indexOut=training_folds, verboseIter=T) 
+)
+toc_model4n <- toc()
+model4n
+
+hocv_cor_4n <- cor(
+  predict(model4n, ion_test_tbl, na.action=na.pass),
+  ion_test_tbl$Attrition
+) ^ 2
+
+stopCluster(local_cluster)
+registerDoSEQ()
+
+summary(resamples(list(model1n, model2n, model3n, model4n)))
+resample_sum <- summary(resamples(list(model1n, model2n, model3n, model4n)))
+dotplot(resamples(list(model1n, model2n, model3n, model4n)))
+
+# Publication 
+
+
+
+
+
+
+
+
+
+
+
+
+
