@@ -8,17 +8,20 @@ output: html_document
 # Script Settings and Resources
 ```{r, message=F}
 setwd(dirname(rstudioapi::getActiveDocumentContext()$path))
-library()
+library(tidyverse)
 ```
 
 # Data Import and Cleaning
-```{r cars}
-summary(cars)
+```{r}
+ion_tbl <- read_csv("../data/ion_final_tbl.csv")
 ```
 
-
-```{r pressure, echo=FALSE}
-plot(pressure)
+# Data Export
+```{r}
+ion_tbl %>%
+  select(MonthlyIncome, Attrition, JobSatisfaction,
+         Department, EducationField, Gender, JobRole) %>%
+  saveRDS(file = "../shiny/ion_tbl.RDS")
 ```
 
 
