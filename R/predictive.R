@@ -137,6 +137,11 @@ variance <- ion_tbl_recode %>%
 ion_tbl_final <- ion_tbl_recode %>%
   select(-EmployeeCount, -Over18, -StandardHours)
 
+## Non-text dataset
+ion_tbl_num <- ion_tbl_final %>%
+  select(!ends_with(c("satis", "dis")))
+
+
 ######### Predictive Modeling 
 
 train_cases <- sample(1:nrow(ion_tbl_final), .75*nrow(ion_tbl_final))
@@ -172,7 +177,6 @@ model2n <- train(
   Attrition ~ .,
   ion_train_tbl, 
   method="glmnet",
-  tuneLength=3,
   na.action=na.pass,
   preProcess=c("center", "scale", "nzv", "medianImpute"),
   trControl=trainControl(method="cv", number=10, indexOut=training_folds, verboseIter=T) 
@@ -190,7 +194,6 @@ model3n <- train(
   Attrition ~ .,
   ion_train_tbl, 
   method="ranger",
-  tuneLength=3,
   na.action=na.pass,
   preProcess=c("center", "scale", "nzv", "medianImpute"),
   trControl=trainControl(method="cv", number=10, indexOut=training_folds, verboseIter=T) 
@@ -208,7 +211,6 @@ model4n <- train(
   Attrition ~ .,
   ion_train_tbl, 
   method="xgbTree",
-  tuneLength=1,
   na.action=na.pass,
   preProcess=c("center", "scale", "nzv", "medianImpute"),
   trControl=trainControl(method="cv", number=10, indexOut=training_folds, verboseIter=T) 
@@ -221,12 +223,45 @@ hocv_cor_4n <- cor(
   ion_test_tbl$Attrition
 ) ^ 2
 
-stopCluster(local_cluster)
-registerDoSEQ()
+
 
 summary(resamples(list(model1n, model2n, model3n, model4n)))
 resample_sum <- summary(resamples(list(model1n, model2n, model3n, model4n)))
 dotplot(resamples(list(model1n, model2n, model3n, model4n)))
+
+###Comparing with/without text data
+
+train_cases_num <- sample(1:nrow(ion_tbl_num), .75*nrow(ion_tbl_num))
+
+ion_num_train_tbl <- ion_tbl_num[train_cases_num, ]
+ion_num_test_tbl <- ion_tbl_num[-train_cases_num, ]
+
+training_folds <- createFolds(ion_num_train_tbl$Attrition,
+                              k=10)
+
+tic()
+model3_num <- train(
+  Attrition ~ .,
+  ion_num_train_tbl, 
+  method="ranger",
+  na.action=na.pass,
+  preProcess=c("center", "scale", "nzv", "medianImpute"),
+  trControl=trainControl(method="cv", number=10, indexOut=training_folds, verboseIter=T) 
+)
+toc_model3_num <- toc()
+model3_num
+
+hocv_cor_3num <- cor(
+  predict(model3_num, ion_num_test_tbl, na.action=na.pass),
+  ion_num_test_tbl$Attrition
+) ^ 2
+
+stopCluster(local_cluster)
+registerDoSEQ()
+
+summary(resamples(list(model3n, model3_num)))
+resample_sum_text <- summary(resamples(list(model3n, model3_num)))
+dotplot(resamples(list(model3n, model3_num)))
 
 # Publication 
 model_comp_tbl <- tibble(
@@ -251,7 +286,16 @@ model_comp_tbl <- tibble(
 ) )
 
 
-
+## Incremental validity of text variables
+text_comp_tbl <- tibble(
+  Models = c("rangern with text data","rangern without text data"),
+  cv_rsq = str_remove(
+    round(resample_sum_text$statistics$Rsquared[,"Mean"], 2), 
+    "^0"),
+  ho_rsq = str_remove(c(
+    format(round(hocv_cor_3n, 2), nsmall = 2),
+    format(round(hocv_cor_3num, 2), nsmall = 2)),
+  "^0"))
 
 
 
