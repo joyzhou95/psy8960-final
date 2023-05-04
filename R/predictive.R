@@ -229,8 +229,26 @@ resample_sum <- summary(resamples(list(model1n, model2n, model3n, model4n)))
 dotplot(resamples(list(model1n, model2n, model3n, model4n)))
 
 # Publication 
-
-
+model_comp_tbl <- tibble(
+  Models = c("lmn","glmnetn","rangern","xgbTreen"),
+  cv_rsq = str_remove(round(
+    resample_sum$statistics$Rsquared[,"Mean"],2
+  ),"^0"),
+  ho_rsq = str_remove(c(
+    format(round(hocv_cor_1n,2),nsmall=2),
+    format(round(hocv_cor_2n,2),nsmall=2),
+    format(round(hocv_cor_3n,2),nsmall=2),
+    format(round(hocv_cor_4n,2),nsmall=2)
+  ),"^0"),
+  RMSE = round(
+    resample_sum$statistics$RMSE[, "Mean"], 2
+    ),
+  "Computation Time" = c(
+    round(toc_model1n$toc - toc_model1n$tic, 2), 
+    round(toc_model2n$toc - toc_model2n$tic, 2),
+    round(toc_model3n$toc - toc_model3n$tic, 2),
+    round(toc_model4n$toc - toc_model4n$tic, 2)
+) )
 
 
 
