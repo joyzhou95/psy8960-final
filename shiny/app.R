@@ -5,7 +5,7 @@ library(tidyverse)
 ui <- fluidPage(
 
   # Application title & author name
-  titlePanel("PSY 8960 Final Project Shiny Project: Joy Zhou"),
+  titlePanel("PSY 8960 Final Week Shiny Project: Joy Zhou"),
 
   # Sidebar with the select inputs
   sidebarLayout(
@@ -16,10 +16,23 @@ ui <- fluidPage(
                   choices = c("Monthly pay", 
                               "Turnover status", 
                               "Overall job satisfaction")),
-      selectInput("dataset", "Select a subset of the overall data grouped by", 
-                  choices = c("Department",
-                              "Gender",
-                              "Job role")),
+      selectInput("department", "Select the department that you want to examine", 
+                  choices = c("Human Resources", 
+                              "Research & Development", 
+                              "Sales")),
+      selectInput("gender", "Select the gender that you want to examine", 
+                  choices = c("Male",
+                              "Female")),
+      selectInput("job role", "Select the job role that you want to examine", 
+                  choices = c("Healthcare Representative",
+                              "Human Resources", 
+                              "Laboratory Technician", 
+                              "Manager", 
+                              "Manufacturing Director",
+                              "Research Director", 
+                              "Research Scientist", 
+                              "Sales Executive",
+                              "Sales Representative"))
     ),
     
     # Show the generated distribution and table in the main panel
@@ -34,17 +47,19 @@ ui <- fluidPage(
 # Define server logic required to draw a histogram
 server <- function(input, output) {
 
-    output$distPlot <- renderPlot({
-        # generate bins based on input$bins from ui.R
-        x    <- faithful[, 2]
-        bins <- seq(min(x), max(x), length.out = input$bins + 1)
-
-        # draw the histogram with the specified number of bins
-        hist(x, breaks = bins, col = 'darkgray', border = 'white',
-             xlab = 'Waiting time to next eruption (in mins)',
-             main = 'Histogram of waiting times')
+    output$fig <- renderPlot({
+      # Import the saved RDS dataset that is appropriate for shiny, did not need to specify path as the current wd is the same as the wd of app.R
+      ion_skiny_tbl <- read_rds('./ion_tbl.RDS')
+      
+      
     })
 }
 
 # Run the application 
 shinyApp(ui = ui, server = server)
+
+# Load library for deploying app
+library(rsconenct)
+
+# Deploy and name the app 
+rsconnect::deployApp(appName = "shinny_week8")
