@@ -1,0 +1,4 @@
+Models,cv_accuracy,ho_accuracy,Specificity,Sensitivity,Computation Time
+glmnet,.89,.88,.95,.44,1.78
+ranger,.99,.85,.96,.20,24.14
+xgbTree,.99,.86,.95,.35,43.75

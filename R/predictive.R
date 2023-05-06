@@ -123,7 +123,6 @@ ion_tbl_num <- ion_tbl_final %>%
 
 
 ######### Predictive Modeling 
-
 train_cases <- sample(1:nrow(ion_tbl_final), .75*nrow(ion_tbl_final))
 
 ion_train_tbl <- ion_tbl_final[train_cases, ]
@@ -150,8 +149,6 @@ model_glm
 p_glm <- predict(model_glm, ion_test_tbl, na.action=na.pass)
 
 glm_test_acc <- confusionMatrix(p_glm, ion_test_tbl[["Attrition"]])
-
-colAUC(X = p_glm, y = ion_test_tbl[["Attrition"]], plotROC = T)
 
 tic()
 model_rf <- train(
@@ -186,7 +183,6 @@ p_xgb <- predict(model_xgb, ion_test_tbl, na.action=na.pass)
 xgb_test_acc <- confusionMatrix(p_xgb, ion_test_tbl[["Attrition"]])
 
 
-
 summary(resamples(list(model_glm, model_rf, model_xgb)))
 resample_sum <- summary(resamples(list(model_glm, model_rf, model_xgb)))
 dotplot(resamples(list(model_glm, model_rf, model_xgb)), metric = "Accuracy")
@@ -201,33 +197,31 @@ ion_num_test_tbl <- ion_tbl_num[-train_cases_num, ]
 training_folds <- createFolds(ion_num_train_tbl$Attrition,
                               k=10)
 
-tic()
-model3_num <- train(
+model_xgb_num <- train(
   Attrition ~ .,
   ion_num_train_tbl, 
-  method="ranger",
+  method="xgbTree",
   na.action=na.pass,
   preProcess=c("center", "scale", "nzv", "medianImpute"),
   trControl=trainControl(method="cv", number=10, indexOut=training_folds, verboseIter=T) 
 )
-toc_model3_num <- toc()
-model3_num
 
-hocv_cor_3num <- cor(
-  predict(model3_num, ion_num_test_tbl, na.action=na.pass),
-  ion_num_test_tbl$Attrition
-) ^ 2
+model_xgb_num
+
+p_xgb_num <- predict(model_xgb_num, ion_num_test_tbl, na.action=na.pass)
+
+xgb_num_test_acc <- confusionMatrix(p_xgb_num, ion_num_test_tbl[["Attrition"]])
 
 stopCluster(local_cluster)
 registerDoSEQ()
 
-summary(resamples(list(model3n, model3_num)))
-resample_sum_text <- summary(resamples(list(model3n, model3_num)))
-dotplot(resamples(list(model3n, model3_num)))
+summary(resamples(list(model_xgb, model_xgb_num)))
+resample_sum_text <- summary(resamples(list(model_xgb, model_xgb_num)))
+dotplot(resamples(list(model_xgb, model_xgb_num)), metrix = "Accuracy")
 
 # Publication 
 model_comp_tbl <- tibble(
-  Models = c("glmnetn","rangern","xgbTreen"),
+  Models = c("glmnet","ranger","xgbTree"),
   cv_accuracy = str_remove(round(
     resample_sum$statistics$Accuracy[,"Mean"],2
   ),"^0"),
@@ -252,20 +246,28 @@ model_comp_tbl <- tibble(
     round(toc_model_xgb$toc - toc_model_xgb$tic, 2)
 ) )
 
-
+write_csv(model_comp_tbl, "../out/Model Comparison Table.csv")
 
 ## Incremental validity of text variables
 text_comp_tbl <- tibble(
   Models = c("rangern with text data","rangern without text data"),
-  cv_rsq = str_remove(
-    round(resample_sum_text$statistics$Rsquared[,"Mean"], 2), 
+  cv_accuracy = str_remove(
+    round(resample_sum_text$statistics$Accuracy[,"Mean"], 2), 
     "^0"),
-  ho_rsq = str_remove(c(
-    format(round(hocv_cor_3n, 2), nsmall = 2),
-    format(round(hocv_cor_3num, 2), nsmall = 2)),
-  "^0"))
+  ho_accuracy = str_remove(c(
+    format(round(xgb_test_acc$overall[1],2),nsmall=2),
+    format(round(xgb_num_test_acc$overall[1],2),nsmall=2)
+  ),"^0"),
+  Specificity = str_remove(c(
+    format(round(xgb_test_acc$byClass[2],2),nsmall=2),
+    format(round(xgb_num_test_acc$byClass[2],2),nsmall=2)
+  ),"^0"),
+  Sensitivity = str_remove(c(
+    format(round(xgb_test_acc$byClass[1],2),nsmall=2),
+    format(round(xgb_num_test_acc$byClass[1],2),nsmall=2)
+  ), "^0"))
 
-
+write_csv(text_comp_tbl, "../out/Text Data Comparison Table.csv")
 
 
 
