@@ -9,7 +9,6 @@ library(doParallel)
 library(caret)
 library(tictoc)
 
-
 # Data Import and Cleaning 
 ion_tbl <- read_csv("../data/ion_final_tbl.csv")
 
@@ -109,32 +108,13 @@ ion_tbl_com <- ion_tbl %>%
   left_join(ion_reviews_nlp, by = "employee_id") %>%
   select(-satisfaction_txt.x, -dissatisfaction_txt.x, 
          -satisfaction_txt.y, -dissatisfaction_txt.y,
-         -employee_id)
+         -employee_id) %>%
+  mutate(Attrition = as.factor(recode(Attrition, "Yes" = 0, "No" = 1)))
 
-
-ion_tbl_recode <- ion_tbl_com %>%
-  mutate(
-    Attrition = recode(Attrition, "Yes" = 0, "No" = 1),
-    BusinessTravel = recode(BusinessTravel, "Non-Travel" = 0,"Travel_Rarely" = 1,
-                                 "Travel_Frequently" = 2),
-    Department = recode(Department, "Human Resources" = 0, "Research & Development" = 1, 
-                             "Sales" = 2),
-    EducationField = recode(EducationField, "Human Resources" = 0, "Life Sciences" = 1, 
-                                 "Marketing" = 2, "Medical" = 3, "Technical Degree" = 4,
-                                 "Other" = 5),
-    Gender = recode(Gender, "Male" = 0, "Female" = 1),
-    JobRole = recode(JobRole, "Healthcare Representative" = 0, "Human Resources" = 1, 
-                          "Laboratory Technician" = 2, "Manager" = 3, "Manufacturing Director" = 4,
-                          "Research Director" = 5, "Research Scientist" = 6, "Sales Executive" = 7,
-                          "Sales Representative" = 8),
-    MaritalStatus = recode(MaritalStatus, "Single" = 0, "Married" = 1, "Divorced" = 2),
-    Over18 = recode(Over18, "Y" = 0),
-    OverTime = recode(OverTime, "Yes" = 0, "No" = 1))
-
-variance <- ion_tbl_recode %>%
+variance <- ion_tbl_com %>%
   summarise_if(is.numeric, var)
 
-ion_tbl_final <- ion_tbl_recode %>%
+ion_tbl_final <- ion_tbl_com %>%
   select(-EmployeeCount, -Over18, -StandardHours)
 
 ## Non-text dataset
@@ -156,41 +136,25 @@ local_cluster <- makeCluster(7)
 registerDoParallel(local_cluster)
 
 tic()
-model1n <- train(
+model_glm <- train(
   Attrition ~ .,
   ion_train_tbl, 
-  method="lm",
-  na.action=na.pass,
-  preProcess=c("center", "scale", "nzv", "medianImpute"),
-  trControl=trainControl(method="cv", number=10, indexOut=training_folds, verboseIter=T) 
+  method = "glmnet",
+  na.action = na.pass,
+  preProcess = c("center", "scale", "nzv", "medianImpute"),
+  trControl = trainControl(method="cv", number=10, indexOut=training_folds, verboseIter=T) 
 )
-toc_model1n <- toc()
-model1n
+toc_model_glm <- toc()
+model_glm
 
-hocv_cor_1n <- cor(
-  predict(model1n, ion_test_tbl, na.action=na.pass),
-  ion_test_tbl$Attrition
-)^2
+p_glm <- predict(model_glm, ion_test_tbl, na.action=na.pass)
+
+glm_test_acc <- confusionMatrix(p_glm, ion_test_tbl[["Attrition"]])
+
+colAUC(X = p_glm, y = ion_test_tbl[["Attrition"]], plotROC = T)
 
 tic()
-model2n <- train(
-  Attrition ~ .,
-  ion_train_tbl, 
-  method="glmnet",
-  na.action=na.pass,
-  preProcess=c("center", "scale", "nzv", "medianImpute"),
-  trControl=trainControl(method="cv", number=10, indexOut=training_folds, verboseIter=T) 
-)
-toc_model2n <- toc()
-model2n
-
-hocv_cor_2n <- cor(
-  predict(model2n, ion_test_tbl, na.action=na.pass),
-  ion_test_tbl$Attrition
-) ^ 2
-
-tic()
-model3n <- train(
+model_rf <- train(
   Attrition ~ .,
   ion_train_tbl, 
   method="ranger",
@@ -198,16 +162,15 @@ model3n <- train(
   preProcess=c("center", "scale", "nzv", "medianImpute"),
   trControl=trainControl(method="cv", number=10, indexOut=training_folds, verboseIter=T) 
 )
-toc_model3n <- toc()
-model3n
+toc_model_rf <- toc()
+model_rf
 
-hocv_cor_3n <- cor(
-  predict(model3n, ion_test_tbl, na.action=na.pass),
-  ion_test_tbl$Attrition
-) ^ 2
+p_rf <- predict(model_rf, ion_test_tbl, na.action=na.pass)
+
+rf_test_acc <- confusionMatrix(p_rf, ion_test_tbl[["Attrition"]])
 
 tic()
-model4n <- train(
+model_xgb <- train(
   Attrition ~ .,
   ion_train_tbl, 
   method="xgbTree",
@@ -215,19 +178,18 @@ model4n <- train(
   preProcess=c("center", "scale", "nzv", "medianImpute"),
   trControl=trainControl(method="cv", number=10, indexOut=training_folds, verboseIter=T) 
 )
-toc_model4n <- toc()
-model4n
+toc_model_xgb <- toc()
+model_xgb
 
-hocv_cor_4n <- cor(
-  predict(model4n, ion_test_tbl, na.action=na.pass),
-  ion_test_tbl$Attrition
-) ^ 2
+p_xgb <- predict(model_xgb, ion_test_tbl, na.action=na.pass)
 
+xgb_test_acc <- confusionMatrix(p_xgb, ion_test_tbl[["Attrition"]])
 
 
-summary(resamples(list(model1n, model2n, model3n, model4n)))
-resample_sum <- summary(resamples(list(model1n, model2n, model3n, model4n)))
-dotplot(resamples(list(model1n, model2n, model3n, model4n)))
+
+summary(resamples(list(model_glm, model_rf, model_xgb)))
+resample_sum <- summary(resamples(list(model_glm, model_rf, model_xgb)))
+dotplot(resamples(list(model_glm, model_rf, model_xgb)), metric = "Accuracy")
 
 ###Comparing with/without text data
 
@@ -265,25 +227,31 @@ dotplot(resamples(list(model3n, model3_num)))
 
 # Publication 
 model_comp_tbl <- tibble(
-  Models = c("lmn","glmnetn","rangern","xgbTreen"),
-  cv_rsq = str_remove(round(
-    resample_sum$statistics$Rsquared[,"Mean"],2
+  Models = c("glmnetn","rangern","xgbTreen"),
+  cv_accuracy = str_remove(round(
+    resample_sum$statistics$Accuracy[,"Mean"],2
   ),"^0"),
-  ho_rsq = str_remove(c(
-    format(round(hocv_cor_1n,2),nsmall=2),
-    format(round(hocv_cor_2n,2),nsmall=2),
-    format(round(hocv_cor_3n,2),nsmall=2),
-    format(round(hocv_cor_4n,2),nsmall=2)
+  ho_accuracy = str_remove(c(
+    format(round(glm_test_acc$overall[1],2),nsmall=2),
+    format(round(rf_test_acc$overall[1],2),nsmall=2),
+    format(round(xgb_test_acc$overall[1],2),nsmall=2)
   ),"^0"),
-  RMSE = round(
-    resample_sum$statistics$RMSE[, "Mean"], 2
-    ),
+  Specificity = str_remove(c(
+    format(round(glm_test_acc$byClass[2],2),nsmall=2),
+    format(round(rf_test_acc$byClass[2],2),nsmall=2),
+    format(round(xgb_test_acc$byClass[2],2),nsmall=2)
+  ),"^0"),
+  Sensitivity = str_remove(c(
+    format(round(glm_test_acc$byClass[1],2),nsmall=2),
+    format(round(rf_test_acc$byClass[1],2),nsmall=2),
+    format(round(xgb_test_acc$byClass[1],2),nsmall=2)
+  ),"^0"),
   "Computation Time" = c(
-    round(toc_model1n$toc - toc_model1n$tic, 2), 
-    round(toc_model2n$toc - toc_model2n$tic, 2),
-    round(toc_model3n$toc - toc_model3n$tic, 2),
-    round(toc_model4n$toc - toc_model4n$tic, 2)
+    round(toc_model_glm$toc - toc_model_glm$tic, 2), 
+    round(toc_model_rf$toc - toc_model_rf$tic, 2),
+    round(toc_model_xgb$toc - toc_model_xgb$tic, 2)
 ) )
+
 
 
 ## Incremental validity of text variables
