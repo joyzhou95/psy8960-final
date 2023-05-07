@@ -3,22 +3,34 @@ setwd(dirname(rstudioapi::getActiveDocumentContext()$path))
 library(tidyverse)
 library(rstatix)
 
+
 # Data Import and Cleaning 
+
+## Read in the dataset saved in Part 1
 ion_tbl1 <- read_csv("../data/ion_final_tbl.csv")
 
+## Recode the gender variable into numeric values for conducting regression analyses 
 ion_tbl <- ion_tbl1 %>%
   mutate(Gender = recode(Gender, "Male" = 0, "Female" = 1))
+
+
 
 
 # Analysis 
 
 ## Test of H1
+
+### Calculate the correlation between monthly income and performance ratings 
 pay_perf_cor <- ion_tbl %>%
   cor_test(vars = c("MonthlyIncome", "PerformanceRating"))
 pay_perf_cor
 
 
+
 ## Test of H2
+
+### Conduct ANOVA analyses to test whether monthly income varies by departments,
+### set the detailed argument to True to get the statistics we need for constructing an ANOVA table
 pay_depart_anova <- ion_tbl %>%
   anova_test(
     formula = MonthlyIncome ~ Department,
@@ -27,33 +39,50 @@ pay_depart_anova <- ion_tbl %>%
 pay_depart_anova
 
 
+
 ## Test of H3
+
+### Conduct regression analyses predicting tenure using relationship satisfaction, gender,
+### and the interaction between the two
 h3_reg <- lm(YearsAtCompany ~ RelationshipSatisfaction + Gender + RelationshipSatisfaction * Gender,
              data = ion_tbl) 
+
+### Save the model output summary
 h3_reg_out <- summary(h3_reg)
 
+### Obtain the model predicted tenure value 
 tenure_pred <- predict(h3_reg)
+
+### Add the model predicted tenure to the original dataset to prepare for plotting 
 ion_tbl_pred <- ion_tbl %>%
   add_column(tenure_pred = tenure_pred)
+
+
 
 
 
 # Visualization 
   
 ## Visualization of H1 
+
+### Create a scatterplot with a best fitted line visualizing the correlation 
+### between monthly income and performance ratings, then save it in the figs folder
 (ggplot(ion_tbl, aes(MonthlyIncome, PerformanceRating)) +
     geom_point(position = "jitter") + 
     geom_smooth(method = "lm", se = F) + 
     labs(x = "Monthly Income", y = "Performance Ratings", 
          title = "The Relationship Between Monthly Pay and Performance Ratings") + 
-  theme(plot.title = element_text(hjust = 0.5))) %>%
-  ggsave(filename = "../figs/H1.png", units = "px", width = 1920, height = 1080)
+    theme(plot.title = element_text(hjust = 0.5))) %>%
+    ggsave(filename = "../figs/H1.png", units = "px", width = 1920, height = 1080)
 
 
 
 ## Visualization of H2
-(ggplot(ion_tbl, aes( MonthlyIncome, Department)) + 
+
+### Create a boxplot visualizing monthly pay by departments and save it in the figs folder
+(ggplot(ion_tbl, aes(MonthlyIncome, Department)) + 
   geom_boxplot() + 
+  ### Flipped the coordinates so that Department is on the x-axis, which makes the plot easier to interpret
   coord_flip() + 
   labs(x = "Monthly Income", y = "Departments", 
        title = "Monthly Pay by Departments") + 
@@ -63,6 +92,9 @@ ion_tbl_pred <- ion_tbl %>%
 
 
 ## Visualization of H3
+
+### Create the scatterplot and the best-fitting line between observed and predicted values of tenure
+### then save it in the figs folder
 (ggplot(ion_tbl_pred, aes(x = YearsAtCompany, y = tenure_pred)) + 
   geom_point(position = "jitter") + 
   geom_smooth(method = "lm", se = F) + 
@@ -77,6 +109,8 @@ ion_tbl_pred <- ion_tbl %>%
 # Publication
 
 ## Publication Results for H1 
+
+### Interpret the correlation results and format the dynamically generated numbers 
 paste0(
   "The pearson correlation between monthly income and performance ratings was r = ", 
   str_replace(
@@ -102,6 +136,8 @@ paste0(
 
 
 ## Publication results of H2
+
+### Generate an ANOVA table for H2 and format the numbers 
 h2_anova_tbl <- tibble(
   "Source of Variation" = c("Department", 
                             "Error", 
@@ -129,8 +165,10 @@ h2_anova_tbl <- tibble(
     NA)
 )
 
+### Save the generated ANOVA table in the output folder 
 write_csv(h2_anova_tbl, "../out/H2.csv")
 
+### Interpret the ANOVA results and format the dynamically generated numbers
 paste0(
   "The ANOVA test indicated that there was ",
   ifelse(pay_depart_anova$p > 0.05, "not ", ""),
@@ -157,6 +195,7 @@ paste0(
 
 ## Publication results of H3
 
+### Create a regression results table with all the numbers formatted
 h3_reg_table <- tibble(
   Variables = c("Intercept", 
                 "Relationship Satisfaction", 
@@ -179,9 +218,10 @@ h3_reg_table <- tibble(
     "^0")
 )
 
+### Save the generated table in the output folder
 write_csv(h3_reg_table, "../out/H3.csv")
 
-
+### Interpret the regression results and format the dynamically generated numbers
 paste0(
   "The regression analyses results indicated that relationship satisfaction did ",
   ifelse(h3_reg_out$coefficients[,4][2] > 0.05, "not ", ""),
