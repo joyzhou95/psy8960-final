@@ -13,15 +13,21 @@ library(tidyverse)
 
 # Data Import and Cleaning
 ```{r}
+
+## Read in the dataset saved in Part 1
 ion_tbl <- read_csv("../data/ion_final_tbl.csv")
+
 ```
 
 # Data Export
 ```{r}
+
+## Select only the variables that we will need for building the shiny app and save it in RDS format in the shiny folder
 ion_tbl %>%
   select(MonthlyIncome, Attrition, JobSatisfaction,
          Department, EducationField, Gender, JobRole) %>%
   saveRDS(file = "../shiny/ion_tbl.RDS")
+
 ```
 
 # An interactive web app for this project is available by [clicking this link ](https://joyzhou.shinyapps.io/shiny_week8/).
