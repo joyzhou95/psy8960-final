@@ -61,7 +61,44 @@ ui <- fluidPage(
   )
 )
 
+server <- function(input, output) {
+  # Import the saved RDS dataset that is appropriate for shiny, did not need to specify path as the current wd is the same as the wd of app.R
+  ion_skiny_tbl <- readRDS("ion_tbl.RDS")
+  
+  output$fig <- renderPlot({
+    
+    if (input$department != "All"){
+      ion_skiny_tbl <- ion_skiny_tbl %>%
+        filter(Department == input$department)}
+    
+    if (input$education != "All"){
+      ion_skiny_tbl <- ion_skiny_tbl %>%
+        filter(EducationField == input$education)}
+    
+    if (input$gender != "All"){
+      ion_skiny_tbl <- ion_skiny_tbl %>%
+        filter(Gender == input$gender)}
+    
+    if (input$job_role != "All"){
+      ion_skiny_tbl <- ion_skiny_tbl %>%
+        filter(JobRole == input$job_role)}
+    
+    
+    if (input$variables == "Attrition"){
+      ion_skiny_tbl %>%
+        ggplot(aes_string(input$variables)) + 
+        geom_bar() 
+    } else if (input$variables != "None"){
+      ion_skiny_tbl %>%
+        ggplot(aes_string(input$variables)) + 
+        geom_histogram() 
+    } else {
+      NULL
+    }
+  })
+  
 
+}
 
 
 # Run the application 
@@ -69,7 +106,6 @@ shinyApp(ui = ui, server = server)
 
 # Load library for deploying app
 #library(rsconnect)
-#rsconnect::setAccountInfo(name='joyzhou', token='2590A8DB5F2C12C2946B93E305228F9D', secret='Fr2jmw3fmOMtVIOpKGiVsENgS+9a0TTG/dOe+ll9')
 
 # Deploy and name the app 
 #rsconnect::deployApp(appName = "people_dashboard")
