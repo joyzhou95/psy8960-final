@@ -197,27 +197,27 @@ ion_num_test_tbl <- ion_tbl_num[-train_cases_num, ]
 training_folds <- createFolds(ion_num_train_tbl$Attrition,
                               k=10)
 
-model_xgb_num <- train(
+model_glm_num <- train(
   Attrition ~ .,
   ion_num_train_tbl, 
-  method="xgbTree",
+  method="glmnet",
   na.action=na.pass,
   preProcess=c("center", "scale", "nzv", "medianImpute"),
   trControl=trainControl(method="cv", number=10, indexOut=training_folds, verboseIter=T) 
 )
 
-model_xgb_num
+model_glm_num
 
-p_xgb_num <- predict(model_xgb_num, ion_num_test_tbl, na.action=na.pass)
+p_glm_num <- predict(model_glm_num, ion_num_test_tbl, na.action=na.pass)
 
-xgb_num_test_acc <- confusionMatrix(p_xgb_num, ion_num_test_tbl[["Attrition"]])
+glm_num_test_acc <- confusionMatrix(p_glm_num, ion_num_test_tbl[["Attrition"]])
 
 stopCluster(local_cluster)
 registerDoSEQ()
 
-summary(resamples(list(model_xgb, model_xgb_num)))
-resample_sum_text <- summary(resamples(list(model_xgb, model_xgb_num)))
-dotplot(resamples(list(model_xgb, model_xgb_num)), metrix = "Accuracy")
+summary(resamples(list(model_glm, model_glm_num)))
+resample_sum_text <- summary(resamples(list(model_glm, model_glm_num)))
+dotplot(resamples(list(model_glm, model_glm_num)), metrix = "Accuracy")
 
 # Publication 
 model_comp_tbl <- tibble(
@@ -250,21 +250,21 @@ write_csv(model_comp_tbl, "../out/Model Comparison Table.csv")
 
 ## Incremental validity of text variables
 text_comp_tbl <- tibble(
-  Models = c("rangern with text data","rangern without text data"),
+  Models = c("glmnet with text data","glmnet without text data"),
   cv_accuracy = str_remove(
-    round(resample_sum_text$statistics$Accuracy[,"Mean"], 2), 
+    format(round(resample_sum_text$statistics$Accuracy[,"Mean"], 2), nsmall = 2), 
     "^0"),
   ho_accuracy = str_remove(c(
-    format(round(xgb_test_acc$overall[1],2),nsmall=2),
-    format(round(xgb_num_test_acc$overall[1],2),nsmall=2)
+    format(round(glm_test_acc$overall[1],2),nsmall=2),
+    format(round(glm_num_test_acc$overall[1],2),nsmall=2)
   ),"^0"),
   Specificity = str_remove(c(
-    format(round(xgb_test_acc$byClass[2],2),nsmall=2),
-    format(round(xgb_num_test_acc$byClass[2],2),nsmall=2)
+    format(round(glm_test_acc$byClass[2],2),nsmall=2),
+    format(round(glm_num_test_acc$byClass[2],2),nsmall=2)
   ),"^0"),
   Sensitivity = str_remove(c(
-    format(round(xgb_test_acc$byClass[1],2),nsmall=2),
-    format(round(xgb_num_test_acc$byClass[1],2),nsmall=2)
+    format(round(glm_test_acc$byClass[1],2),nsmall=2),
+    format(round(glm_num_test_acc$byClass[1],2),nsmall=2)
   ), "^0"))
 
 write_csv(text_comp_tbl, "../out/Text Data Comparison Table.csv")
