@@ -1,3 +1,4 @@
+#Load required packages
 library(shiny)
 library(tidyverse)
 
@@ -11,7 +12,8 @@ ui <- fluidPage(
   sidebarLayout(
     #Set select inputs to be in the sidebar
     sidebarPanel(
-      #Set up selectInput for gender, errorband, and competion time to allow users to filter their data based on their selections
+      #Set up selectInput for outcomes, department, education field, gender, and job roles
+      # to allow users to filter data based on their selections
       selectInput("variables", "Select the outcome that you want to examine",
                   selected = "None",
                   choices = c("None",
@@ -52,7 +54,7 @@ ui <- fluidPage(
                               "Sales Representative"))
     ),
     
-    # Show the generated distribution and table in the main panel
+    # Show the generated distribution and descriptive table in the main panel
     mainPanel(
       # Use plotOutput and tableOutput to create non-interactive distribution and table output 
       plotOutput("fig"),
@@ -66,7 +68,7 @@ server <- function(input, output) {
   ion_skiny_tbl <- readRDS("ion_tbl.RDS")
   
   output$fig <- renderPlot({
-    
+    # Filter data based on users' selections 
     if (input$department != "All"){
       ion_skiny_tbl <- ion_skiny_tbl %>%
         filter(Department == input$department)}
@@ -83,7 +85,7 @@ server <- function(input, output) {
       ion_skiny_tbl <- ion_skiny_tbl %>%
         filter(JobRole == input$job_role)}
     
-    
+    # Generate distribution plots using barplots or histograms based on the selection of the outcome 
     if (input$variables == "Attrition"){
       ion_skiny_tbl %>%
         ggplot(aes_string(input$variables)) + 
@@ -94,28 +96,24 @@ server <- function(input, output) {
         ggplot(aes_string(input$variables)) + 
         geom_histogram() + 
         labs(y = "Frequency")
+    # When none of the outcome was selected, don't display anything 
     } else {
       NULL
     }
   })
   
   output$table <- renderTable({
+    
+    # Convert the attrition variable to numeric
     ion_skiny_tbl_t <- ion_skiny_tbl %>%
       mutate(Attrition = recode(Attrition, 
                                 "Yes" = 0,
-                                "No" = 1))
+                               "No" = 1))
+    
+    # Create an empty list
     filter_list <- c()
     
-    if (input$education != "All") {
-      filter_list <- append(filter_list, "EducationField")}
-    
-    if (input$gender != "All") {
-      filter_list <- append(filter_list, "Gender")}
-    
-    if (input$job_role != "All"){
-      filter_list <- append(filter_list, "JobRole")} 
-    filter_list <- c()
-    
+    # Append variables to the list based on users' selections
     if (input$department != "All"){
       filter_list <- append(filter_list, "Department")}
     
@@ -126,17 +124,18 @@ server <- function(input, output) {
       filter_list <- append(filter_list, "Gender")}
     
     if (input$job_role != "All"){
-      filter_list <- append(filter_list, "JobRole")}
+      filter_list <- append(filter_list, "JobRole")} 
     
-    
+    # Group the dataset by the list of variables
     ion_skiny_tbl_t <- ion_skiny_tbl_t %>%
       group_by_at(filter_list)
     
-    
+    # Calculate the means and sds of the outcome selected by users
     if (input$variables != "None"){
       ion_skiny_tbl_t %>%
         summarise(Mean = mean(.data[[input$variables]]),
                   SD = sd(.data[[input$variables]])) 
+    # When none of the outcome was selected, don't display anything 
     } else {
       NULL
     }
