@@ -30,5 +30,13 @@ ion_tbl %>%
 
 ```
 
-# An interactive web app for this project is available by [clicking this link ](https://joyzhou.shinyapps.io/shiny_week8/).
+# An interactive web app for this project is available by [clicking this link ](https://joyzhou.shinyapps.io/people_dashboard/).
+
+# Rationales behind shiny app codes:
+
+## First, I set up several selectInput in order to allow users to select outcomes and data subsets.
+
+## Second, I set up the plot output by first filtering the complete dataset by the options selected by the users, and then generating distribution plots for the selected outcome. I created a barplot for attrition and histograms for the other two outcomes because the former is a character variable. Although I could convert it into numeric values, I thought leaving it as characters would be easier for users to understand. 
+
+## Lastly, I set up the table output by first creating a blank list, and then fill up the list based on the specific options chosen by the user. Then I used the list to group the dataset and calculate the means and sds of the outcome selected by the user. After completing all the steps above, I tested and deployed the app. 
 

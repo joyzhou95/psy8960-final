@@ -12,7 +12,7 @@ ui <- fluidPage(
     #Set select inputs to be in the sidebar
     sidebarPanel(
       #Set up selectInput for gender, errorband, and competion time to allow users to filter their data based on their selections
-      selectInput("variables", "Select the variable that you want to examine",
+      selectInput("variables", "Select the outcome that you want to examine",
                   selected = "None",
                   choices = c("None",
                               "MonthlyIncome", 
@@ -87,11 +87,13 @@ server <- function(input, output) {
     if (input$variables == "Attrition"){
       ion_skiny_tbl %>%
         ggplot(aes_string(input$variables)) + 
-        geom_bar() 
+        geom_bar() + 
+        labs(y = "Frequency")
     } else if (input$variables != "None"){
       ion_skiny_tbl %>%
         ggplot(aes_string(input$variables)) + 
-        geom_histogram() 
+        geom_histogram() + 
+        labs(y = "Frequency")
     } else {
       NULL
     }
