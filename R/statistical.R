@@ -7,11 +7,7 @@ library(rstatix)
 # Data Import and Cleaning 
 
 ## Read in the dataset saved in Part 1
-ion_tbl1 <- read_csv("../data/ion_final_tbl.csv")
-
-## Recode the gender variable into numeric values for conducting regression analyses 
-ion_tbl <- ion_tbl1 %>%
-  mutate(Gender = recode(Gender, "Male" = 0, "Female" = 1))
+ion_tbl <- read_csv("../data/ion_final_tbl.csv")
 
 
 
@@ -44,13 +40,13 @@ pay_depart_anova
 
 ### Conduct regression analyses predicting tenure using relationship satisfaction, gender,
 ### and the interaction between the two
-h3_reg <- lm(YearsAtCompany ~ RelationshipSatisfaction + Gender + RelationshipSatisfaction * Gender,
+h3_reg <- lm(YearsAtCompany ~  RelationshipSatisfaction + Gender + RelationshipSatisfaction * Gender,
              data = ion_tbl) 
 
 ### Save the model output summary
 h3_reg_out <- summary(h3_reg)
 
-### Obtain the model predicted tenure value 
+### Obtain the model predicted tenure values 
 tenure_pred <- predict(h3_reg)
 
 ### Add the model predicted tenure to the original dataset to prepare for plotting 
@@ -95,10 +91,11 @@ ion_tbl_pred <- ion_tbl %>%
 
 ### Create the scatterplot and the best-fitting line between observed and predicted values of tenure
 ### then save it in the figs folder
-(ggplot(ion_tbl_pred, aes(x = YearsAtCompany, y = tenure_pred)) + 
+(ggplot(ion_tbl_pred, aes(x = RelationshipSatisfaction, y = tenure_pred, group = Gender,
+                          color = Gender)) + 
   geom_point(position = "jitter") + 
   geom_smooth(method = "lm", se = F) + 
-  labs(x = "Tenure", y = "Predicted Tenure", 
+  labs(x = "Relationship Satisfaction", y = "Predicted Tenure", 
        title = "The Relationship Between Observed and Predicted Tenure") + 
   theme(plot.title = element_text(hjust = 0.5))) %>%
   ggsave(filename = "../figs/H3.png", units = "px", width = 1920, height = 1080)
@@ -125,7 +122,7 @@ paste0(
       round(pay_perf_cor$p, 2), 
       nsmall = 2),
     "^0"),
-  ". This test was ",
+  ". This test is ",
   ifelse(pay_perf_cor$p > 0.05, "not", ""),
   " statistically significant.",
   "Therefore, hypothesis 1 was ",
@@ -158,7 +155,7 @@ h2_anova_tbl <- tibble(
     NA),
   "p value" = c(str_remove(
     format(
-      round(pay_perf_cor$p, 2), 
+      round(pay_depart_anova$p, 2), 
       nsmall = 2),
     "^0"), 
     NA, 
