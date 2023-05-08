@@ -97,7 +97,48 @@ server <- function(input, output) {
     }
   })
   
-
+  output$table <- renderTable({
+    ion_skiny_tbl_t <- ion_skiny_tbl %>%
+      mutate(Attrition = recode(Attrition, 
+                                "Yes" = 0,
+                                "No" = 1))
+    filter_list <- c()
+    
+    if (input$education != "All") {
+      filter_list <- append(filter_list, "EducationField")}
+    
+    if (input$gender != "All") {
+      filter_list <- append(filter_list, "Gender")}
+    
+    if (input$job_role != "All"){
+      filter_list <- append(filter_list, "JobRole")} 
+    filter_list <- c()
+    
+    if (input$department != "All"){
+      filter_list <- append(filter_list, "Department")}
+    
+    if (input$education != "All") {
+      filter_list <- append(filter_list, "EducationField")}
+    
+    if (input$gender != "All") {
+      filter_list <- append(filter_list, "Gender")}
+    
+    if (input$job_role != "All"){
+      filter_list <- append(filter_list, "JobRole")}
+    
+    
+    ion_skiny_tbl_t <- ion_skiny_tbl_t %>%
+      group_by_at(filter_list)
+    
+    
+    if (input$variables != "None"){
+      ion_skiny_tbl_t %>%
+        summarise(Mean = mean(.data[[input$variables]]),
+                  SD = sd(.data[[input$variables]])) 
+    } else {
+      NULL
+    }
+  })
 }
 
 
