@@ -109,11 +109,11 @@ server <- function(input, output) {
   
   output$table <- renderTable({
     
-    # Convert the attrition variable to numeric
+    # Convert the attrition variable to numeric for calculation 
     ion_skiny_tbl_t <- ion_skiny_tbl %>%
       mutate(Attrition = recode(Attrition, 
                                 "Yes" = 0,
-                               "No" = 1))
+                                "No" = 1))
     
     # Create an empty list
     filter_list <- c()
@@ -131,17 +131,18 @@ server <- function(input, output) {
     if (input$job_role != "All"){
       filter_list <- append(filter_list, "JobRole")} 
     
-    # Group the dataset by the list of variables
+    # Group the dataset by the list of variables selected 
     ion_skiny_tbl_t <- ion_skiny_tbl_t %>%
       group_by_at(filter_list)
     
-
+    # Assign outcome name in the dataset to the corresponding options
     if (input$variables == "Monthly Pay") {outcome <- "MonthlyIncome"}
     
     if (input$variables == "Turnover Status"){outcome <- "Attrition"}
 
     if(input$variables == "Overall Job Satisfaction"){outcome <- "JobSatisfaction"}
     
+    # Calculate means and sds for the outcome variable that was selected using data grouped in previous steps 
     if(input$variables != "None"){
       ion_skiny_tbl_t %>%
         summarise(Mean = mean(.data[[outcome]]),
