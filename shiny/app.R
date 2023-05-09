@@ -17,9 +17,9 @@ ui <- fluidPage(
       selectInput("variables", "Select the outcome that you want to examine",
                   selected = "None",
                   choices = c("None",
-                              "MonthlyIncome", 
-                              "Attrition", 
-                              "JobSatisfaction")),
+                              "Monthly Pay", 
+                              "Turnover Status", 
+                              "Overall Job Satisfaction")),
       selectInput("department", "Select the department that you want to examine",
                   selected = "All",
                   choices = c("All",
@@ -86,17 +86,22 @@ server <- function(input, output) {
         filter(JobRole == input$job_role)}
     
     # Generate distribution plots using barplots or histograms based on the selection of the outcome 
-    if (input$variables == "Attrition"){
+    if (input$variables == "Monthly Pay"){
       ion_skiny_tbl %>%
-        ggplot(aes_string(input$variables)) + 
-        geom_bar() + 
-        labs(y = "Frequency")
-    } else if (input$variables != "None"){
-      ion_skiny_tbl %>%
-        ggplot(aes_string(input$variables)) + 
+        ggplot(aes(MonthlyIncome)) + 
         geom_histogram() + 
-        labs(y = "Frequency")
-    # When none of the outcome was selected, don't display anything 
+        labs(x = "Monthly Pay", y = "Frequency")
+    } else if (input$variables == "Turnover Status"){
+      ion_skiny_tbl %>%
+        ggplot(aes(Attrition)) + 
+        geom_bar() + 
+        labs(x = "Turnover Status", y = "Frequency")
+    } else if (input$variables == "Overall Job Satisfaction") {
+      ion_skiny_tbl %>%
+        ggplot(aes(JobSatisfaction)) + 
+        geom_histogram() + 
+        labs(x = "Overall Job Satisfaction", y = "Frequency")    
+      # When none of the outcome was selected, don't display anything 
     } else {
       NULL
     }
@@ -130,12 +135,17 @@ server <- function(input, output) {
     ion_skiny_tbl_t <- ion_skiny_tbl_t %>%
       group_by_at(filter_list)
     
-    # Calculate the means and sds of the outcome selected by users
-    if (input$variables != "None"){
+
+    if (input$variables == "Monthly Pay") {outcome <- "MonthlyIncome"}
+    
+    if (input$variables == "Turnover Status"){outcome <- "Attrition"}
+
+    if(input$variables == "Overall Job Satisfaction"){outcome <- "JobSatisfaction"}
+    
+    if(input$variables != "None"){
       ion_skiny_tbl_t %>%
-        summarise(Mean = mean(.data[[input$variables]]),
-                  SD = sd(.data[[input$variables]])) 
-    # When none of the outcome was selected, don't display anything 
+        summarise(Mean = mean(.data[[outcome]]),
+                  SD = sd(.data[[outcome]])) 
     } else {
       NULL
     }
