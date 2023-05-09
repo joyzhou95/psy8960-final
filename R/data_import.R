@@ -16,7 +16,7 @@ review_tbl_ordered <- review_tbl %>%
   arrange(employee_id)
 
 ## Given that the dataset file was already ordered by employee_id, I am just adding the id column 
-## so that it can be merged with the review data
+## ordered by the row number so that it can be merged with the review data
 dataset_tbl_num <- dataset_tbl %>%
   mutate(employee_id = 1:nrow(dataset_tbl))
 
